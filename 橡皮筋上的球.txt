@@ -1,0 +1,120 @@
+问题：IYPT/CUPT 2022-P11 Balls on an Elastic Band
+
+问题示例视频：https://www.bilibili.com/video/BV1ug411773M
+
+一 能量分析
+
+系统能量包含：
+
+1. 小球平动动能
+
+2. 小球转动动能
+
+3. 橡皮筋拉伸产生的弹性势能
+
+4. 橡皮筋扭转产生的弹性势能
+
+二 能量损耗：
+
+1. 橡皮筋拉伸/扭转将弹性势能部分转化为内能
+
+2. 小球在桌面上滚动，动摩擦力做功
+
+3. 空气阻力（忽略）
+
+三 符号声明
+
+vector2d s位移 v速度 a加速度 F力 f阻力
+
+float r小球半径 m小球质量 k橡皮筋的劲度系数 kn橡皮筋扭转系数 theta橡皮筋扭转弧度 橡皮筋原长L(|theta|)是橡皮筋扭转弧度的函数 miu动摩擦系数 g重力加速度
+
+四 受力分析
+
+小球i在水平面上受以下力的作用：
+
+1. 橡皮筋拉力
+
+橡皮筋遵循胡克定律，F=kx，x为拉伸距离，因为小球只受橡皮筋拉力作用，不受推力，所以拉力大小为F=k*max(0,d-r_i-r_j-L(|theta|))
+
+其中d为两球球心距离，i和j分别是两球的索引。
+
+L函数经实验测得，固定橡皮筋长度，扭转橡皮筋，当橡皮筋由松弛到绷紧，测力计由不受力到受力，记录L和theta，多次实验，使用一次函数拟合。
+
+拉力方向由球i指向球j
+
+2.桌面对小球的阻力
+
+f=miu*F_N=miu*m_i*g
+
+方向与速度方向相反（如果速度模长非常小，可以将f当做0向量）
+
+3.橡皮筋扭力
+
+扭力F*力臂r_i=kn*theta（力矩）
+
+可知F=kn*theta/r_i
+
+theta有符号
+
+方向为由球i指向球j的单位向量逆时针旋转90度。（旋转矩阵[[0,-1],[1,0]]点乘此单位向量）
+
+五 能量计算
+
+橡皮筋的能量很难分析，小球的能量可以计算得出
+
+小球能量包括平动动能E_move和转动动能E_rotate
+
+平动动能E_move=1/2*m*v^2
+
+转动动能E_rotate=1/2*I*omege^2
+
+其中I是均质实心球的转动惯量，I=2/5*m*v^2
+
+角速度omega = dtheta/dt = (ds_ver/r)/dt
+
+其中dtheta为dt时间内球以橡皮筋为轴转过的角度，ds是球体在dt时间内的位移改变量，ds_ver是球体在dt时间内的位移改变量垂直于橡皮筋的分量（ds是向量，ds_ver也是向量，在计算角速度时表示模长）
+
+六 物理引擎模拟
+
+小球运动是变速曲线运动，但在较短时间内，可以当做匀速直线运动。这个较短的时间叫做时间步长dt。
+
+#伪代码示例
+初始化
+t:=0
+dt:=10^(-5)#足够小就行
+while 1:#主循环
+E:=E_move:=E_rotate:=0 # 初始化为0
+for i in ballIndex:
+for j in ballIndex:
+if i==j:
+continue
+endif
+# ij是球索引，且不是同一个球
+计算合力F
+endfor
+a:=F/m
+v:=v+a*dt
+# 转动动能
+I=2/5*m*r**2  # 转动惯量
+ds:=v*dt
+ds_ij是由球i指向球j的向量
+d是两球距离
+ds_par:=ds_ij/d^2*ds.*ds_ij # .*向量点乘
+# ds_par是ds平行于橡皮筋的分量
+ds_ver:=ds-ds_par
+omega=|ds_ver|/r/dt # 角速度 # |v|表示向量v的模长
+E_rotate:=E_rotate+0.5*I*omega**2
+E_move:=E_move+0.5*m*v**2
+E_total:=E_move + E_rotate
+endfor
+for i in ballIndex:
+s:=s+v*dt
+endfor
+t:=t+dt
+记录E_move,E_rotate,E_total
+渲染当前帧
+if 跳出条件:
+break
+endif
+endwhile
+查看记录的E_move,E_rotate,E_total并画图
